@@ -102,6 +102,7 @@ class PreAuthenticationDataTypes(Enum):
     TD_REQ_SEQ                 = 108
     PA_PAC_REQUEST             = 128
     PA_FOR_USER                = 129
+    PA_S4U_X509_USER           = 130
     PA_FX_COOKIE               = 133 
     PA_FX_FAST                 = 136
     PA_FX_ERROR                = 137
@@ -460,6 +461,8 @@ class EncryptionTypes(Enum):
     des3_cbc_sha1_kd             = 16
     aes128_cts_hmac_sha1_96      = 17
     aes256_cts_hmac_sha1_96      = 18
+    aes128_cts_hmac_sha256_128   = 19
+    aes256_cts_hmac_sha384_192   = 20
     rc4_hmac                     = 23
     rc4_hmac_exp                 = 24
     subkey_keymaterial           = 65
@@ -472,3 +475,5 @@ class ChecksumTypes(Enum):
     hmac_sha1_des3_kd = 12
     hmac_sha1_96_aes128 = 15
     hmac_sha1_96_aes256 = 16
+    hmac_sha256_128_aes128 = 19
+    hmac_sha384_192_aes256 = 20
