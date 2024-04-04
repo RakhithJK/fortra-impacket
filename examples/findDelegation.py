@@ -254,7 +254,14 @@ class FindDelegation:
                                     )
                                     results = [item for item in respSpnExists if isinstance(item, ldapasn1.SearchResultEntry)]
                                     if len(results) != 0:
-                                        spnExists = "Yes"
+                                        distinguishedName = None
+                                        for attribute in results[0]["attributes"]:
+                                            if str(attribute["type"]) == "distinguishedName":
+                                                distinguishedName = str(attribute["vals"][0])
+                                        if distinguishedName is not None:
+                                            spnExists = "Yes (%s)" % distinguishedName
+                                        else:
+                                            spnExists = "Yes"
                                     else:
                                         spnExists = "No"
                                     answers.append([sAMAccountName, objectType, delegation, rights, str(spnExists)])
