@@ -43,11 +43,11 @@ class FindDelegation:
             rowMaxLen = max([len(row[i]) for row in items])
             colLen.append(max(rowMaxLen, len(col)))
 
-        outputFormat = ' '.join(['{%d:%ds} ' % (num, width) for num, width in enumerate(colLen)])
+        outputFormat = " ".join(["{%d:%ds} " % (num, width) for num, width in enumerate(colLen)])
 
         # Print header
         print(outputFormat.format(*header))
-        print('  '.join(['-' * itemLen for itemLen in colLen]))
+        print("  ".join(["-" * itemLen for itemLen in colLen]))
 
         # And now the rows
         for row in items:
@@ -59,50 +59,50 @@ class FindDelegation:
         self.__domain = user_domain
         self.__target = None
         self.__targetDomain = target_domain
-        self.__lmhash = ''
-        self.__nthash = ''
+        self.__lmhash = ""
+        self.__nthash = ""
         self.__aesKey = cmdLineOptions.aesKey
         self.__doKerberos = cmdLineOptions.k
         #[!] in this script the value of -dc-ip option is self.__kdcIP and the value of -dc-host option is self.__kdcHost
         self.__kdcIP = cmdLineOptions.dc_ip
         self.__kdcHost = cmdLineOptions.dc_host
         if cmdLineOptions.hashes is not None:
-            self.__lmhash, self.__nthash = cmdLineOptions.hashes.split(':')
+            self.__lmhash, self.__nthash = cmdLineOptions.hashes.split(":")
 
         # Create the baseDN
-        domainParts = self.__targetDomain.split('.')
-        self.baseDN = ''
+        domainParts = self.__targetDomain.split(".")
+        self.baseDN = ""
         for i in domainParts:
-            self.baseDN += 'dc=%s,' % i
-        # Remove last ','
+            self.baseDN += "dc=%s," % i
+        # Remove last ","
         self.baseDN = self.baseDN[:-1]
         # We can't set the KDC to a custom IP or Hostname when requesting things cross-domain
         # because then the KDC host will be used for both
         # the initial and the referral ticket, which breaks stuff.
         if user_domain != self.__targetDomain and (self.__kdcIP or self.__kdcHost):
-            logging.warning('KDC IP address and hostname will be ignored because of cross-domain targeting.')
+            logging.warning("KDC IP address and hostname will be ignored because of cross-domain targeting.")
             self.__kdcIP = None
             self.__kdcHost = None
 
     def getMachineName(self, target):
         try:
             s = SMBConnection(target, target)
-            s.login('', '')
+            s.login("", "")
         except OSError as e:
-            if str(e).find('timed out') > 0:
-                raise Exception('The connection is timed out. Probably 445/TCP port is closed. Try to specify '
-                                'corresponding NetBIOS name or FQDN as the value of the -dc-host option.')
+            if str(e).find("timed out") > 0:
+                raise Exception("The connection is timed out. Probably 445/TCP port is closed. Try to specify "
+                                "corresponding NetBIOS name or FQDN as the value of the -dc-host option.")
             else:
                 raise
         except SessionError as e:
-            if str(e).find('STATUS_NOT_SUPPORTED') > 0:
-                raise Exception('The SMB request is not supported. Probably NTLM is disabled. Try to specify '
-                                'corresponding NetBIOS name or FQDN as the value of the -dc-host option.')
+            if str(e).find("STATUS_NOT_SUPPORTED") > 0:
+                raise Exception("The SMB request is not supported. Probably NTLM is disabled. Try to specify "
+                                "corresponding NetBIOS name or FQDN as the value of the -dc-host option.")
             else:
                 raise
         except Exception:
-            if s.getServerName() == '':
-                raise Exception('Error while anonymous logging into %s' % target)
+            if s.getServerName() == "":
+                raise Exception("Error while anonymous logging into %s" % target)
         else:
             s.logoff()
         return "%s.%s" % (s.getServerName(), s.getServerDNSDomainName())
@@ -118,28 +118,28 @@ class FindDelegation:
                 self.__target = self.__targetDomain
 
             if self.__doKerberos:
-                logging.info('Getting machine hostname')
+                logging.info("Getting machine hostname")
                 self.__target = self.getMachineName(self.__target)
 
         # Connect to LDAP
         try:
-            ldapConnection = ldap.LDAPConnection('ldap://%s' % self.__target, self.baseDN, self.__kdcIP)
+            ldapConnection = ldap.LDAPConnection("ldap://%s" % self.__target, self.baseDN, self.__kdcIP)
             if self.__doKerberos is not True:
                 ldapConnection.login(self.__username, self.__password, self.__domain, self.__lmhash, self.__nthash)
             else:
                 ldapConnection.kerberosLogin(self.__username, self.__password, self.__domain, self.__lmhash, self.__nthash,
                                              self.__aesKey, kdcHost=self.__kdcIP)
         except ldap.LDAPSessionError as e:
-            if str(e).find('strongerAuthRequired') >= 0:
+            if str(e).find("strongerAuthRequired") >= 0:
                 # We need to try SSL
-                ldapConnection = ldap.LDAPConnection('ldaps://%s' % self.__target, self.baseDN, self.__kdcIP)
+                ldapConnection = ldap.LDAPConnection("ldaps://%s" % self.__target, self.baseDN, self.__kdcIP)
                 if self.__doKerberos is not True:
                     ldapConnection.login(self.__username, self.__password, self.__domain, self.__lmhash, self.__nthash)
                 else:
                     ldapConnection.kerberosLogin(self.__username, self.__password, self.__domain, self.__lmhash, self.__nthash,
                                                  self.__aesKey, kdcHost=self.__kdcIP)
             else:
-                if str(e).find('NTLMAuthNegotiate') >= 0:
+                if str(e).find("NTLMAuthNegotiate") >= 0:
                     logging.critical("NTLM negotiation failed. Probably NTLM is disabled. Try to use Kerberos "
                                      "authentication instead")
                 else:
@@ -153,14 +153,21 @@ class FindDelegation:
                        "(!(UserAccountControl:1.2.840.113556.1.4.803:=2))(!(UserAccountControl:1.2.840.113556.1.4.803:=8192)))"
 
         try:
-            resp = ldapConnection.search(searchFilter=searchFilter,
-                                         attributes=['sAMAccountName',
-                                                     'pwdLastSet', 'userAccountControl', 'objectCategory',
-                                                     'msDS-AllowedToActOnBehalfOfOtherIdentity', 'msDS-AllowedToDelegateTo'],
-                                         sizeLimit=999)
+            resp = ldapConnection.search(
+                searchFilter=searchFilter,
+                attributes=[
+                    "sAMAccountName",
+                    "pwdLastSet",
+                    "userAccountControl",
+                    "objectCategory",
+                    "msDS-AllowedToActOnBehalfOfOtherIdentity",
+                    "msDS-AllowedToDelegateTo"
+                ],
+                sizeLimit=999
+            )
         except ldap.LDAPSearchError as e:
-            if e.getErrorString().find('sizeLimitExceeded') >= 0:
-                logging.debug('sizeLimitExceeded exception caught, giving up and processing the data received')
+            if e.getErrorString().find("sizeLimitExceeded") >= 0:
+                logging.debug("sizeLimitExceeded exception caught, giving up and processing the data received")
                 # We reached the sizeLimit, process the answers we have already and that's it. Until we implement
                 # paged queries
                 resp = e.getAnswers()
@@ -169,114 +176,137 @@ class FindDelegation:
                 raise
 
         answers = []
-        logging.debug('Total of records returned %d' % len(resp))
+        logging.debug("Total of records returned %d" % len(resp))
         
         for item in resp:
             if isinstance(item, ldapasn1.SearchResultEntry) is not True:
                 continue
             mustCommit = False
-            sAMAccountName =  ''
+            sAMAccountName =  ""
             userAccountControl = 0
-            delegation = ''
-            objectType = ''
+            delegation = ""
+            objectType = ""
             rightsTo = []
             protocolTransition = 0
 
             #after receiving responses we parse through to determine the type of delegation configured on each object
             try:
-                for attribute in item['attributes']:
-                    if str(attribute['type']) == 'sAMAccountName':
-                        sAMAccountName = str(attribute['vals'][0])
+                for attribute in item["attributes"]:
+                    if str(attribute["type"]) == "sAMAccountName":
+                        sAMAccountName = str(attribute["vals"][0])
                         mustCommit = True
-                    elif str(attribute['type']) == 'userAccountControl':
-                        userAccountControl = str(attribute['vals'][0])
+                    elif str(attribute["type"]) == "userAccountControl":
+                        userAccountControl = str(attribute["vals"][0])
                         if int(userAccountControl) & UF_TRUSTED_FOR_DELEGATION:
-                            delegation = 'Unconstrained'
+                            delegation = "Unconstrained"
                             rightsTo.append("N/A")
                         elif int(userAccountControl) & UF_TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION:
-                            delegation = 'Constrained w/ Protocol Transition'
+                            delegation = "Constrained w/ Protocol Transition"
                             protocolTransition = 1
-                    elif str(attribute['type']) == 'objectCategory':
-                        objectType = str(attribute['vals'][0]).split('=')[1].split(',')[0]
-                    elif str(attribute['type']) == 'msDS-AllowedToDelegateTo':
+                    elif str(attribute["type"]) == "objectCategory":
+                        objectType = str(attribute["vals"][0]).split("=")[1].split(",")[0]
+                    elif str(attribute["type"]) == "msDS-AllowedToDelegateTo":
                         if protocolTransition == 0:
-                            delegation = 'Constrained'
-                        for delegRights in attribute['vals']:
+                            delegation = "Constrained"
+                        for delegRights in attribute["vals"]:
                             rightsTo.append(str(delegRights))
              
                     #not an elif as an object could both have rbcd and another type of delegation configured for the same object
-                    if str(attribute['type']) == 'msDS-AllowedToActOnBehalfOfOtherIdentity':
+                    if str(attribute["type"]) == "msDS-AllowedToActOnBehalfOfOtherIdentity":
                         rbcdRights = []
                         rbcdObjType = []
-                        searchFilter = '(&(|'
-                        sd = ldaptypes.SR_SECURITY_DESCRIPTOR(data=bytes(attribute['vals'][0]))
-                        for ace in sd['Dacl'].aces:
-                            searchFilter = searchFilter + "(objectSid="+ace['Ace']['Sid'].formatCanonical()+")"
+                        searchFilter = "(&(|"
+                        sd = ldaptypes.SR_SECURITY_DESCRIPTOR(data=bytes(attribute["vals"][0]))
+                        for ace in sd["Dacl"].aces:
+                            searchFilter = searchFilter + "(objectSid="+ace["Ace"]["Sid"].formatCanonical()+")"
                         searchFilter = searchFilter + ")(!(UserAccountControl:1.2.840.113556.1.4.803:=2)))"
-                        delegUserResp = ldapConnection.search(searchFilter=searchFilter,attributes=['sAMAccountName', 'objectCategory'],sizeLimit=999)
+                        delegUserResp = ldapConnection.search(searchFilter=searchFilter,attributes=["sAMAccountName", "objectCategory"],sizeLimit=999)
                         for item2 in delegUserResp:
                             if isinstance(item2, ldapasn1.SearchResultEntry) is not True:
                                 continue
-                            rbcdRights.append(str(item2['attributes'][0]['vals'][0]))
-                            rbcdObjType.append(str(item2['attributes'][1]['vals'][0]).split('=')[1].split(',')[0])
+                            rbcdRights.append(str(item2["attributes"][0]["vals"][0]))
+                            rbcdObjType.append(str(item2["attributes"][1]["vals"][0]).split("=")[1].split(",")[0])
 							
                         if mustCommit is True:
                             if int(userAccountControl) & UF_ACCOUNTDISABLE:
-                                logging.debug('Bypassing disabled account %s ' % sAMAccountName)
+                                logging.debug("Bypassing disabled account %s " % sAMAccountName)
                             else:
                                 for rights, objType in zip(rbcdRights,rbcdObjType):
-                                    answers.append([rights, objType, 'Resource-Based Constrained', sAMAccountName])
+                                    answers.append([rights, objType, "Resource-Based Constrained", sAMAccountName])
                         
                 #print unconstrained + constrained delegation relationships
-                if delegation in ['Unconstrained', 'Constrained', 'Constrained w/ Protocol Transition']:
+                if delegation in ["Unconstrained", "Constrained", "Constrained w/ Protocol Transition"]:
                     if mustCommit is True:
                             if int(userAccountControl) & UF_ACCOUNTDISABLE:
-                                logging.debug('Bypassing disabled account %s ' % sAMAccountName)
+                                logging.debug("Bypassing disabled account %s " % sAMAccountName)
                             else:
                                 for rights in rightsTo:
-                                    answers.append([sAMAccountName, objectType, delegation, rights])
+                                    spnExists = "-"
+                                    if rights == "N/A":
+                                        query = "(servicePrincipalName=HOST/%s)" % sAMAccountName.rstrip("$")
+                                    else:
+                                        query = "(servicePrincipalName=%s)"%rights
+
+                                    respSpnExists = ldapConnection.search(
+                                        searchFilter=query, 
+                                        attributes=["servicePrincipalName", "distinguishedName"], 
+                                        sizeLimit=1
+                                    )
+                                    results = [item for item in respSpnExists if isinstance(item, ldapasn1.SearchResultEntry)]
+                                    if len(results) != 0:
+                                        distinguishedName = None
+                                        for attribute in results[0]["attributes"]:
+                                            if str(attribute["type"]) == "distinguishedName":
+                                                distinguishedName = str(attribute["vals"][0])
+                                        if distinguishedName is not None:
+                                            spnExists = "Yes (%s)" % distinguishedName
+                                        else:
+                                            spnExists = "Yes"
+                                    else:
+                                        spnExists = "No"
+                                    answers.append([sAMAccountName, objectType, delegation, rights, str(spnExists)])
             except Exception as e:
-                logging.error('Skipping item, cannot process due to error %s' % str(e))
+                logging.error("Skipping item, cannot process due to error %s" % str(e))
                 pass
 
         if len(answers)>0:
-            self.printTable(answers, header=[ "AccountName", "AccountType", "DelegationType", "DelegationRightsTo"])
-            print('\n\n')
+            self.printTable(answers, header=[ "AccountName", "AccountType", "DelegationType", "DelegationRightsTo", "SPN Exists"])
+            print("\n\n")
         else:
             print("No entries found!")
 
 
 # Process command-line arguments.
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(version.BANNER)
 
     parser = argparse.ArgumentParser(add_help = True, description = "Queries target domain for delegation relationships ")
 
-    parser.add_argument('target', action='store', help='domain[/username[:password]]')
-    parser.add_argument('-target-domain', action='store', help='Domain to query/request if different than the domain of the user. '
-                                                               'Allows for retrieving delegation info across trusts.')
+    parser.add_argument("target", action="store", help="domain[/username[:password]]")
+    parser.add_argument("-target-domain", action="store", help="Domain to query/request if different than the domain of the user. "
+                                                               "Allows for retrieving delegation info across trusts.")
 
-    parser.add_argument('-ts', action='store_true', help='Adds timestamp to every logging output')
-    parser.add_argument('-debug', action='store_true', help='Turn DEBUG output ON')
+    parser.add_argument("-ts", action="store_true", help="Adds timestamp to every logging output")
+    parser.add_argument("-debug", action="store_true", help="Turn DEBUG output ON")
 
-    group = parser.add_argument_group('authentication')
-    group.add_argument('-hashes', action="store", metavar = "LMHASH:NTHASH", help='NTLM hashes, format is LMHASH:NTHASH')
-    group.add_argument('-no-pass', action="store_true", help='don\'t ask for password (useful for -k)')
-    group.add_argument('-k', action="store_true", help='Use Kerberos authentication. Grabs credentials from ccache file '
-                                                       '(KRB5CCNAME) based on target parameters. If valid credentials '
-                                                       'cannot be found, it will use the ones specified in the command '
-                                                       'line')
-    group.add_argument('-aesKey', action="store", metavar = "hex key", help='AES key to use for Kerberos Authentication '
-                                                                            '(128 or 256 bits)')
+    group = parser.add_argument_group("authentication")
+    group.add_argument("-hashes", action="store", metavar = "LMHASH:NTHASH", help="NTLM hashes, format is LMHASH:NTHASH")
+    group.add_argument("-no-pass", action="store_true", help="Don't ask for password (useful for -k)")
+    group.add_argument("-k", action="store_true", help="Use Kerberos authentication. Grabs credentials from ccache file "
+                                                       "(KRB5CCNAME) based on target parameters. If valid credentials "
+                                                       "cannot be found, it will use the ones specified in the command "
+                                                       "line")
+    group.add_argument("-aesKey", action="store", metavar = "hex key", help="AES key to use for Kerberos Authentication "
+                                                                            "(128 or 256 bits)")
 
-    group = parser.add_argument_group('connection')
-    group.add_argument('-dc-ip', action='store', metavar='ip address', help='IP Address of the domain controller. If '
-                                                                              'ommited it use the domain part (FQDN) '
-                                                                              'specified in the target parameter. Ignored'
-                                                                              'if -target-domain is specified.')
-    group.add_argument('-dc-host', action='store', metavar='hostname', help='Hostname of the domain controller to use. '
-                                                                              'If ommited, the domain part (FQDN) '
-                                                                              'specified in the account parameter will be used')
+    group = parser.add_argument_group("connection")
+    group.add_argument("-dc-ip", action="store", metavar="ip address", help="IP Address of the domain controller. If "
+                                                                              "ommited it use the domain part (FQDN) "
+                                                                              "specified in the target parameter. Ignored"
+                                                                              "if -target-domain is specified.")
+    group.add_argument("-dc-host", action="store", metavar="hostname", help="Hostname of the domain controller to use. "
+                                                                              "If ommited, the domain part (FQDN) "
+                                                                              "specified in the account parameter will be used")
 
     if len(sys.argv)==1:
         parser.print_help()
@@ -296,8 +326,8 @@ if __name__ == '__main__':
 
     userDomain, username, password = parse_credentials(options.target)
 
-    if userDomain == '':
-        logging.critical('userDomain should be specified!')
+    if userDomain == "":
+        logging.critical("userDomain should be specified!")
         sys.exit(1)
 
     if options.target_domain:
@@ -305,7 +335,7 @@ if __name__ == '__main__':
     else:
         targetDomain = userDomain
 
-    if password == '' and username != '' and options.hashes is None and options.no_pass is False and options.aesKey is None:
+    if password == "" and username != "" and options.hashes is None and options.no_pass is False and options.aesKey is None:
         from getpass import getpass
         password = getpass("Password:")
 
